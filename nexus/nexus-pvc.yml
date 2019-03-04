@@ -6,8 +6,9 @@ metadata:
   labels: 
     app: nexus
 spec:
+  storageClassName: standard
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi 
+      storage: 10Gi 

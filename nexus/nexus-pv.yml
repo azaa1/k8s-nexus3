@@ -3,11 +3,11 @@ kind: PersistentVolume
 metadata: 
   name: nexus-volume
   labels:
-    type: local
+    app: nexus 
 spec: 
   capacity: 
-    storage: 5Gi
+    storage: 10Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/home/ubuntu/app-project/nexus/volume"
+    path: "/tmp/volume-local"

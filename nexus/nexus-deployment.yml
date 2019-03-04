@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: nexus-deployment
   namespace: nexus
+  labels: 
+    app: nexus
 spec:
   replicas: 1
   template: 
@@ -10,15 +12,23 @@ spec:
       labels: 
         app: nexus
     spec:
-      containers:
-      - image: sonatype/nexus3
-        name: nexus-container
-        ports:
-        - containerPort: 8081
-        volumeMounts:
-          - mountPath: /nexus-data
-            name: nexus-data-volume
       volumes:
-        - name: nexus-data-volume
+        - name: nexus-volume
           persistentVolumeClaim:
             claimName: nexus-pvc    
+      containers:
+        - name: nexus-container
+          image: "quay.io/travelaudience/docker-nexus:3.15.2"
+          env:
+            - name: INSTALL4J_ADD_VM_PARAMS
+              value: "-Xms1200M -Xmx1200M -XX:MaxDirectMemorySize=2G -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 4800Mi
+          ports:
+            - containerPort: 8081
+              name: nexus-http
+          volumeMounts:
+            - name: nexus-volume
+              mountPath: /nexus-data
