@@ -1,0 +1,49 @@
+FROM centos:centos7
+
+MAINTAINER Sonatype <cloud-ops@sonatype.com>
+
+LABEL vendor=Sonatype \
+      com.sonatype.license="Apache License, Version 2.0" \
+      com.sonatype.name="Nexus Repository Manager base image"
+
+ARG NEXUS_VERSION=3.16.2-01
+ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
+ARG NEXUS_DOWNLOAD_SHA256_HASH=d6e8016d389b35f2dc569c981a8076f0d5fcca54778c611c601db2aa9a984cf0
+
+# configure nexus runtime
+ENV SONATYPE_DIR=/opt/sonatype
+ENV NEXUS_HOME=${SONATYPE_DIR}/nexus \
+    NEXUS_DATA=/nexus-data \
+    NEXUS_CONTEXT='' \
+    SONATYPE_WORK=${SONATYPE_DIR}/sonatype-work \
+    DOCKER_TYPE='docker'
+
+ARG NEXUS_REPOSITORY_MANAGER_COOKBOOK_VERSION="release-0.5.20190212-155606.d1afdfe"
+ARG NEXUS_REPOSITORY_MANAGER_COOKBOOK_URL="https://github.com/sonatype/chef-nexus-repository-manager/releases/download/${NEXUS_REPOSITORY_MANAGER_COOKBOOK_VERSION}/chef-nexus-repository-manager.tar.gz"
+
+ADD solo.json.erb /var/chef/solo.json.erb
+
+# Install using chef-solo
+# Chef version locked to avoid needing to accept the EULA on behalf of whomever builds the image
+RUN curl -L https://www.getchef.com/chef/install.sh | bash -s -- -v 14.12.9 \
+    && /opt/chef/embedded/bin/erb /var/chef/solo.json.erb > /var/chef/solo.json \
+    && chef-solo \
+       --recipe-url ${NEXUS_REPOSITORY_MANAGER_COOKBOOK_URL} \
+       --json-attributes /var/chef/solo.json \
+    && rpm -qa *chef* | xargs rpm -e \
+    && rpm --rebuilddb \
+    && rm -rf /etc/chef \
+    && rm -rf /opt/chefdk \
+    && rm -rf /var/cache/yum \
+    && rm -rf /var/chef \
+    && chown 200 /nexus-data
+
+VOLUME ${NEXUS_DATA}
+
+EXPOSE 8081
+USER nexus
+
+ENV INSTALL4J_ADD_VM_PARAMS="-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g -Djava.util.prefs.userRoot=${NEXUS_DATA}/javaprefs"
+
+CMD ["sh", "-c", "${SONATYPE_DIR}/start-nexus-repository-manager.sh"]
+

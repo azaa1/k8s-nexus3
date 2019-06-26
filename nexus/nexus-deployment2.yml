@@ -1,0 +1,34 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nexus-deployment
+  namespace: nexus
+  labels: 
+    app: nexus
+spec:
+  replicas: 1
+  template: 
+    metadata:
+      labels: 
+        app: nexus
+    spec:
+      volumes:
+        - name: nexus-volume
+          persistentVolumeClaim:
+            claimName: nexus-pvc    
+      containers:
+        - name: nexus-container
+          image: "azaa1/nexus3"
+          env:
+            - name: INSTALL4J_ADD_VM_PARAMS
+              value: "-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g -Djava.util.prefs.userRoot=${NEXUS_DATA}/javaprefs"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 4800Mi
+          ports:
+            - containerPort: 8081
+              name: nexus-http
+          volumeMounts:
+            - name: nexus-volume
+              mountPath: /nexus-data
